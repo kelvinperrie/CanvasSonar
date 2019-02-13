@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="jquery-3-3-1.js" type="text/javascript"></script>
+    <script type="application/javascript">
+
+        function randomIntFromInterval(min,max)
+        {
+            return Math.floor(Math.random()*(max-min+1)+min);
+        }
+
+        var sonarModel = function() {
+            var self = this;
+            self.pingCounter = 0;
+            self.pings = [];
+            self.pingInterval = 4000;
+            self.contacts = [];
+            self.contactCheckInterval = 20;
+            
+            self.contacts.push(new contactModel());
+
+            self.draw = function(ctx) {
+                for(var i=0;i< self.pings.length;i++) {
+                    self.pings[i].draw(ctx);
+                }
+                for(var i=0;i< self.contacts.length;i++) {
+                    self.contacts[i].draw(ctx);
+                }
+            };
+            self.doPing = function() {
+                self.pingCounter++;
+                self.pings.push(new pingModel(self.pingCounter, self.removePing));
+            };
+            self.removePing = function(id) {
+                // it's always going to be the first one right? right? maybe.
+                for(var i=0;i< self.pings.length;i++) {
+                    if(self.pings[i].id === id) {
+                        self.pings.splice(i, 1);
+                        return;
+                    }
+                }
+            };
+
+            self.checkForContacts = function() {
+                console.log("checking for contacts");
+                // foreach ping see if they have spotted a contact
+                for(var pingIndex=0;pingIndex< self.pings.length;pingIndex++) {
+                    var pingRadius = self.pings[pingIndex].radius;
+                    for(var contactIndex=0;contactIndex< self.contacts.length;contactIndex++) {
+                        if(!self.contacts[contactIndex].visible) {
+                            var contactRadius = self.contacts[contactIndex].distanceFromCenter();
+                            console.log("ping radius is " + pingRadius);
+                            console.log("contact radius is " + contactRadius);
+                            console.log("abs value is  " + Math.abs(contactRadius - pingRadius));
+                            console.log("distance less than 10  " + Math.abs(contactRadius - pingRadius) < 10);
+                            if(Math.abs(contactRadius - pingRadius) < 10) {
+                                self.contacts[contactIndex].spotted();
+                            }
+                        }
+                    }
+                }
+                setTimeout(function(){ self.checkForContacts(); }, self.contactCheckInterval);
+            }
+            self.checkForContacts();
+
+            self.animate = function() {
+                self.doPing();
+                setTimeout(function(){ self.animate(); }, self.pingInterval);
+            };
+            self.animate();
+        }
+
+        var pingModel = function(id, completedCallback) {
+            var self = this;
+            self.id = id;
+            self.radius = 0;
+            self.raidusIncrement = 4;
+            self.completedRadius = 300;
+            self.moveFrequency = 100;
+            self.completedCallback = completedCallback;
+
+            self.move = function() {
+                if(self.radius > self.completedRadius) {
+                    completedCallback(self.id);
+                    return;
+                }
+                self.radius = self.radius + self.raidusIncrement;
+                setTimeout(function(){ self.move(); }, self.moveFrequency);
+            }
+            self.move();
+
+            self.draw = function(ctx) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.strokeStyle = "#05FA07";
+                ctx.arc(200, 200, self.radius, 0, 2 * Math.PI);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        var contactModel = function() {
+            var self = this;
+            self.fadeFrequency = 100;
+            self.fadeIncrement = 0.05;
+            self.lastSpotted = { x : 0, y : 0 };
+            self.currentLocation = { x : 200, y : 100 };
+            self.currentOpacity = 1;
+            self.visible = false;
+
+            self.distanceFromCenter = function() {
+                var x = 200 - self.currentLocation.x;
+                var y = 200 - self.currentLocation.y;
+                return Math.sqrt((x*x)+y*y );
+            }
+
+            self.spotted = function() {
+                console.log("spotted!");
+                self.visible = true;
+                self.currentOpacity = 1;
+                self.lastSpotted.x = self.currentLocation.x;
+                self.lastSpotted.y = self.currentLocation.y;
+                self.fadeMe();
+            }
+
+            self.draw = function(ctx) {
+                if(self.visible) {
+                    ctx.save();
+                    //ctx.globalAlpha = 0.5;
+                    //ctx.drawImage(img, self.lastSpotted.x, self.lastSpotted.y);
+                    ctx.beginPath();
+                    ctx.fillStyle = "rgba(5,250,7, "+self.currentOpacity+")";
+                    //ctx.moveTo(self.lastSpotted.x, self.lastSpotted.y);
+                    ctx.arc(self.lastSpotted.x, self.lastSpotted.y, 5, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            self.fadeMe = function() {
+                self.currentOpacity = self.currentOpacity - self.fadeIncrement;
+                if(self.currentOpacity <= 0) {
+                    self.visible = false;
+                    console.log("gone!");
+                } else {
+                    setTimeout(function(){ self.fadeMe(); }, self.fadeFrequency);
+                }
+            }
+        }
+
+        var model = new sonarModel();
+        function drawLoop() {
+            // todo, why this in the loop tho
+            var canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                model.draw(ctx);
+                setTimeout(function(){ drawLoop(); }, 50);
+            }
+        }
+        
+
+
+
+
+    </script>
+    <style type="text/css">
+        body {
+            font-family: "Fira", Helvetica, Arial, sans-serif;
+            margin: 0;
+            text-align: center;
+            color: #6b6b6b;
+        }
+        canvas {
+            border: 1px solid #d0d0d0;
+            background-color: #2d2d2d;
+        }
+        .everything {
+            margin: auto;
+        }
+    </style>
+</head>
+<body onload="drawLoop();">
+    <div class="everything">
+
+        <canvas id="canvas" width="400" height="400"></canvas>
+
+    </div>
+</body>
+</html>

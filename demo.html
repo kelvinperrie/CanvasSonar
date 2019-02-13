@@ -2,8 +2,13 @@
 <html>
 <head>
     <meta charset="utf-8"/>
-    <script src="jquery-3-3-1.js" type="text/javascript"></script>
+    <script src="jquery-3.3.1.min.js" type="text/javascript"></script>
     <script type="application/javascript">
+        $(function(){
+            $('html').keydown(function(e){
+                model.processInput(e.which);
+            });
+        });
 
         function randomIntFromInterval(min,max)
         {
@@ -42,18 +47,18 @@
                 }
             };
 
+            self.processInput = function(input) {
+                // we only have one contact at the moment :]
+                self.contacts[0].processInput(input);
+            }
+
             self.checkForContacts = function() {
-                console.log("checking for contacts");
                 // foreach ping see if they have spotted a contact
                 for(var pingIndex=0;pingIndex< self.pings.length;pingIndex++) {
                     var pingRadius = self.pings[pingIndex].radius;
                     for(var contactIndex=0;contactIndex< self.contacts.length;contactIndex++) {
                         if(!self.contacts[contactIndex].visible) {
                             var contactRadius = self.contacts[contactIndex].distanceFromCenter();
-                            console.log("ping radius is " + pingRadius);
-                            console.log("contact radius is " + contactRadius);
-                            console.log("abs value is  " + Math.abs(contactRadius - pingRadius));
-                            console.log("distance less than 10  " + Math.abs(contactRadius - pingRadius) < 10);
                             if(Math.abs(contactRadius - pingRadius) < 10) {
                                 self.contacts[contactIndex].spotted();
                             }
@@ -108,6 +113,7 @@
             self.currentLocation = { x : 200, y : 100 };
             self.currentOpacity = 1;
             self.visible = false;
+            self.movementIncrement = 10;
 
             self.distanceFromCenter = function() {
                 var x = 200 - self.currentLocation.x;
@@ -116,7 +122,6 @@
             }
 
             self.spotted = function() {
-                console.log("spotted!");
                 self.visible = true;
                 self.currentOpacity = 1;
                 self.lastSpotted.x = self.currentLocation.x;
@@ -133,7 +138,6 @@
                     ctx.fillStyle = "rgba(5,250,7, "+self.currentOpacity+")";
                     //ctx.moveTo(self.lastSpotted.x, self.lastSpotted.y);
                     ctx.arc(self.lastSpotted.x, self.lastSpotted.y, 5, 0, 2 * Math.PI);
-                    ctx.stroke();
                     ctx.fill();
                     ctx.restore();
                 }
@@ -143,9 +147,24 @@
                 self.currentOpacity = self.currentOpacity - self.fadeIncrement;
                 if(self.currentOpacity <= 0) {
                     self.visible = false;
-                    console.log("gone!");
                 } else {
                     setTimeout(function(){ self.fadeMe(); }, self.fadeFrequency);
+                }
+            }
+
+            self.processInput = function(input) {
+                if(input === 37) {
+                    // left
+                    self.currentLocation.x = self.currentLocation.x - self.movementIncrement;
+                } else if(input === 38) {
+                    // up
+                    self.currentLocation.y = self.currentLocation.y - self.movementIncrement;
+                } else if (input === 39) {
+                    // right
+                    self.currentLocation.x = self.currentLocation.x + self.movementIncrement;
+                } else if (input === 40) {
+                    // down
+                    self.currentLocation.y = self.currentLocation.y + self.movementIncrement;
                 }
             }
         }

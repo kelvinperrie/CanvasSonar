@@ -22,8 +22,19 @@
             self.pingInterval = 4000;
             self.contacts = [];
             self.contactCheckInterval = 20;
+            self.indexForUserContact = 0;
             
-            self.contacts.push(new contactModel());
+            // self.contacts.push(new contactModel({ x : 200, y : 100}));
+            // self.contacts.push(new contactModel({ x : 100, y : 75}));
+            // self.contacts.push(new contactModel({ x : 250, y : 150}));
+
+            self.contacts.push(new contactModel({ location : { x : 200, y : 150}, image: "duck-outline.png"}));
+            self.contacts.push(new contactModel({ location : { x : 250, y : 125}, image: "duck-outline.png"}));
+            self.contacts.push(new contactModel({ location : { x : 100, y : 250}, image: "duck-outline.png"}));
+            self.contacts.push(new contactModel({ location : { x : 185, y : 300}, image: "duck-outline.png"}));
+            self.contacts.push(new contactModel({ location : { x : 275, y : 330}, image: "duck-outline.png"}));
+
+
 
             self.draw = function(ctx) {
                 for(var i=0;i< self.pings.length;i++) {
@@ -48,8 +59,7 @@
             };
 
             self.processInput = function(input) {
-                // we only have one contact at the moment :]
-                self.contacts[0].processInput(input);
+                self.contacts[self.indexForUserContact].processInput(input);
             }
 
             self.checkForContacts = function() {
@@ -59,7 +69,7 @@
                     for(var contactIndex=0;contactIndex< self.contacts.length;contactIndex++) {
                         if(!self.contacts[contactIndex].visible) {
                             var contactRadius = self.contacts[contactIndex].distanceFromCenter();
-                            if(Math.abs(contactRadius - pingRadius) < 10) {
+                            if(Math.abs(contactRadius - pingRadius) < 5) {
                                 self.contacts[contactIndex].spotted();
                             }
                         }
@@ -105,15 +115,23 @@
             }
         }
 
-        var contactModel = function() {
+        var contactModel = function(settings) {
             var self = this;
             self.fadeFrequency = 100;
             self.fadeIncrement = 0.05;
             self.lastSpotted = { x : 0, y : 0 };
-            self.currentLocation = { x : 200, y : 100 };
+            self.currentLocation = { x : settings.location.x, y : settings.location.y };
             self.currentOpacity = 1;
             self.visible = false;
             self.movementIncrement = 10;
+            self.text = settings.text;
+            self.image = null;
+            self.imageSource = settings.image;
+            if(self.imageSource) {
+                self.image = new Image();
+                self.image.src = self.imageSource;
+            }
+
 
             self.distanceFromCenter = function() {
                 var x = 200 - self.currentLocation.x;
@@ -132,13 +150,19 @@
             self.draw = function(ctx) {
                 if(self.visible) {
                     ctx.save();
-                    //ctx.globalAlpha = 0.5;
-                    //ctx.drawImage(img, self.lastSpotted.x, self.lastSpotted.y);
-                    ctx.beginPath();
-                    ctx.fillStyle = "rgba(5,250,7, "+self.currentOpacity+")";
-                    //ctx.moveTo(self.lastSpotted.x, self.lastSpotted.y);
-                    ctx.arc(self.lastSpotted.x, self.lastSpotted.y, 5, 0, 2 * Math.PI);
-                    ctx.fill();
+                    if(self.image) {
+                        ctx.globalAlpha = self.currentOpacity;
+                        ctx.drawImage(self.image, self.lastSpotted.x, self.lastSpotted.y);
+                    } else if(self.text) {
+                        ctx.font = '12px serif';
+                        ctx.fillStyle = "rgba(5,250,7, "+self.currentOpacity+")";
+                        ctx.fillText(self.text, self.lastSpotted.x, self.lastSpotted.y);
+                    } else {
+                        ctx.beginPath();
+                        ctx.fillStyle = "rgba(5,250,7, "+self.currentOpacity+")";
+                        ctx.arc(self.lastSpotted.x, self.lastSpotted.y, 5, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
                     ctx.restore();
                 }
             }
